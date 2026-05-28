@@ -19,7 +19,7 @@ def load_config():
 def main():
     config = load_config()
     
-    if config['discord']['bot_token'] == "YOUR_DISCORD_BOT_TOKEN_HERE":
+    if config['discord']['bot_token'] in ["YOUR_DISCORD_BOT_TOKEN_HERE", "INSERT TOKEN HERE"]:
         print("⚠️ ERROR: Please update config.json with your actual Discord Token.")
         return
 

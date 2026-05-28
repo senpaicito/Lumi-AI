@@ -4,11 +4,14 @@
 
 [ OVERVIEW ]
 Project Companion is a locally hosted, autonomous AI entity that lives on
-your computer and communicates via Discord DMs. It features:
-1. Psyche-Engine v3.0: A deep personality system (OCEAN traits, values).
+your computer and communicates via Discord DMs.
+
+It features:
+1. Psyche-Engine v3.1: A deep personality system (OCEAN traits, values).
 2. Long-Term Memory: Uses Vector Database (ChromaDB) to remember facts.
-3. Autonomy: Can initiate conversations if you haven't spoken in a while.
+3. Autonomy: Can natively initiate organic conversations if you haven't spoken in a while.
 4. Admin Control: Complete remote control via Discord commands.
+5. Advanced Tasks: Runs background routines overnight to maximize your hardware.
 
 ========================================================================
 [ 1. FILE STRUCTURE ]
@@ -22,16 +25,19 @@ Project_Companion/
 │
 ├── data/
 │   ├── character_card.json    <-- The AI's Personality (DNA)
-│   └── memory/                <-- Database folder (Auto-created)
+│   └── memory/               
+ <-- Database folder (Auto-created)
 │
 └── src/
     ├── main.py                <-- Entry point
+    ├── cli.py                 <-- Command Line Interface
     ├── core/
     │   ├── bot.py             <-- Discord Logic & Commands
     │   ├── ollama_client.py   <-- AI Generation Logic
     │   ├── subconscious.py    <-- Emotion Processing Logic
-    │   ├── autonomy.py        <-- Heartbeat/Initiative Logic
-    │   └── memory_manager.py  <-- Database Logic
+    │   ├── autonomy.py        <-- True Heartbeat/Initiative Logic
+    │   ├── memory_manager.py  <-- Database Logic
+    │   └── advanced_tasks.py  <-- Background Hardware Routines
     └── utils/
         └── message_handler.py <-- Splitting long messages
 
@@ -39,17 +45,17 @@ Project_Companion/
 [ 2. INSTALLATION ]
 
 1. Install Python 3.10 or newer.
-   - Check "Add Python to PATH" during installation.
+ - Check "Add Python to PATH" during installation.
 
 2. Install Ollama (https://ollama.com).
    - Run `ollama serve` in a terminal.
-   - Run `ollama pull llama3` (or your preferred model).
+ - Run `ollama pull llama3` (or your preferred model).
 
 3. Discord Setup:
    - Create a Bot in the Discord Developer Portal.
-   - Enable "MESSAGE CONTENT INTENT" in the bot settings.
+ - Enable "MESSAGE CONTENT INTENT" in the bot settings.
    - Copy the Token.
-   - Get your User ID (Right click your name in Discord -> Copy ID).
+ - Get your User ID (Right click your name in Discord -> Copy ID).
 
 4. Configuration:
    - Open `config.json`.
@@ -59,8 +65,8 @@ Project_Companion/
 5. First Run:
    - Double click `start_companion.bat`.
    - It will install dependencies automatically.
-   - It will download the embedding model (first time only).
-   - Wait for "✅ Logged in as..."
+ - It will download the embedding model (first time only).
+ - Wait for "✅ Logged in as..."
 
 ========================================================================
 [ 3. DISCORD COMMANDS ]
@@ -73,7 +79,7 @@ These commands only work in DMs with the bot.
 
 !status
     Shows the AI's current internal state.
-    Displays: Mood, Energy, Obsession, Intimacy Level.
+    Displays: Mood, Energy, Intimacy Level.
 
 !reset
     Wipes Short-Term Memory (RAM) only.
@@ -97,7 +103,7 @@ These commands only work in DMs with the bot.
     Examples:
     - Change Name:   !edit core_identity.name Luna
     - Change Mood:   !edit dynamic_state.mood 100
-    - Change Topic:  !edit narrative_engine.current_obsession Gardening
+    - Change Decay:  !edit dynamic_state.decay_rate 3.0
     - Change Voice:  !edit core_identity.voice_model "Sassy Pirate"
 
 ========================================================================
@@ -105,7 +111,8 @@ These commands only work in DMs with the bot.
 
 BACKUPS:
 The AI's "Soul" is located in the `data/` folder.
-Copy this folder to a safe place once a week. If the database corrupts,
+Copy this folder to a safe place once a week.
+If the database corrupts,
 you can just paste the backup folder back in.
 
 CUSTOMIZATION:

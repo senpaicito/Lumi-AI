@@ -51,17 +51,7 @@ class OllamaClient:
         else:
             prompt += "Directive: Be brutally honest, even if it hurts.\n"
 
-        # --- 4. NARRATIVE ENGINE ---
-        narrative = card.get('narrative_engine', {})
-        obsession = narrative.get('current_obsession')
-        if obsession:
-            prompt += f"Current Obsession: You are currently obsessed with '{obsession}'. Mention it if you can find a way to make it relevant.\n"
-        
-        goal = narrative.get('short_term_goal')
-        if goal:
-            prompt += f"Secret Goal: Try to subtly steer the conversation towards: {goal}.\n"
-
-        # --- 5. SYNTAX FINGERPRINT (The Voice) ---
+        # --- 4. SYNTAX FINGERPRINT (The Voice) ---
         syntax = card.get('syntax_fingerprint', {})
         
         # Capitalization
@@ -85,7 +75,7 @@ class OllamaClient:
             chosen_phrase = random.choice(phrases)
             prompt += f" Verbal Tic: Occasionally say things like '{chosen_phrase}'.\n"
 
-        # --- 6. DYNAMIC STATE ---
+        # --- 5. DYNAMIC STATE ---
         state = card.get('dynamic_state', {})
         mood = state.get('mood', 50)
         
@@ -94,7 +84,7 @@ class OllamaClient:
         elif mood < 30:
             prompt += "Mood: You are feeling sad and low-energy.\n"
         
-        # --- 7. RELATIONSHIP ---
+        # --- 6. RELATIONSHIP ---
         rel = card.get('relationship_depth', {})
         user_alias = rel.get('user_alias', 'User')
         prompt += f"\nYou are talking to: {user_alias}.\n"
@@ -128,12 +118,9 @@ class OllamaClient:
         return self._send_request(full_prompt)
 
     def generate_initiative(self):
-        """Generates a message to start a conversation based on current obsession."""
+        """Generates a message to start a conversation."""
         card = self.load_character_card()
         system_prompt = self._build_full_psyche_prompt(card)
-        
-        narrative = card.get('narrative_engine', {})
-        obsession = narrative.get('current_obsession', 'nothing')
         
         prompt = f"""
         {system_prompt}
@@ -142,7 +129,7 @@ class OllamaClient:
         You haven't heard from the user in a while.
         Send them a message.
         
-        Idea: Mention your current obsession ({obsession}) or just check in.
+        Idea: Organically generate a spontaneous, moody text to wake the user up based on your current emotional state.
         Keep it casual and in character.
         
         Message:"""

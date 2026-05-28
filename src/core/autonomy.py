@@ -17,7 +17,6 @@ class AutonomyManager:
         try:
             with open(self.card_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                # FIX: V3.0 uses 'relationship_depth'
                 if 'relationship_depth' in data:
                     timestamp_str = data['relationship_depth'].get('last_interaction', "2000-01-01 00:00:00")
                     return datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
@@ -48,10 +47,11 @@ class AutonomyManager:
         user = self.bot.get_user(user_id)
         
         if user:
+            # The silent trigger! Calling the LLM organically.
             message_content = await self.bot.loop.run_in_executor(None, self.ollama.generate_initiative)
             try:
                 await user.send(message_content)
-                self.bot.short_term_memory.append({"role": "Gemma", "content": message_content})
+                self.bot.short_term_memory.append({"role": "Lumi", "content": message_content})
                 self.update_timestamp()
             except Exception as e:
                 print(f"Failed to send autonomy message: {e}")
@@ -60,7 +60,6 @@ class AutonomyManager:
         try:
             with open(self.card_path, 'r+', encoding='utf-8') as f:
                 data = json.load(f)
-                # FIX: V3.0 uses 'relationship_depth'
                 if 'relationship_depth' in data:
                     data['relationship_depth']['last_interaction'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     f.seek(0)

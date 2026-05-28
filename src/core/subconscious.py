@@ -68,6 +68,24 @@ class Subconscious:
         # FIX: V3.0 uses 'dynamic_state'
         if 'dynamic_state' in card:
             state = card['dynamic_state']
+            
+            # --- Emotional Decay Engine ---
+            mood_base = state.get('mood_baseline', 70)
+            energy_base = state.get('energy_baseline', 80)
+            stress_base = state.get('stress_baseline', 30)
+            decay = state.get('decay_rate', 2.0)
+            
+            # Drift towards baseline
+            if state['mood'] > mood_base: state['mood'] = max(mood_base, state['mood'] - decay)
+            elif state['mood'] < mood_base: state['mood'] = min(mood_base, state['mood'] + decay)
+            
+            if state['energy'] > energy_base: state['energy'] = max(energy_base, state['energy'] - decay)
+            elif state['energy'] < energy_base: state['energy'] = min(energy_base, state['energy'] + decay)
+            
+            if state['stress'] > stress_base: state['stress'] = max(stress_base, state['stress'] - decay)
+            elif state['stress'] < stress_base: state['stress'] = min(stress_base, state['stress'] + decay)
+            
+            # --- Apply New Shifts ---
             state['mood'] = max(0, min(100, state.get('mood', 50) + updates.get('mood_shift', 0)))
             state['energy'] = max(0, min(100, state.get('energy', 50) + updates.get('energy_shift', 0)))
             state['stress'] = max(0, min(100, state.get('stress', 0) + updates.get('stress_shift', 0)))

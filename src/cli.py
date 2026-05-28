@@ -81,7 +81,7 @@ class CLIInterface:
         # 2. Long Term Retrieval
         relevant_memories = self.memory_manager.recall_memories(user_input)
         
-        print(f"{Colors.CYAN}Gemma is thinking...{Colors.ENDC}", end="\r")
+        print(f"{Colors.CYAN}Lumi is thinking...{Colors.ENDC}", end="\r")
 
         # 3. Generate
         response = self.ollama.generate_response(
@@ -93,16 +93,16 @@ class CLIInterface:
         # 4. Output
         # Clear the "thinking" line
         print(" " * 20, end="\r")
-        print(f"{Colors.BLUE}Gemma: {Colors.ENDC}{response}\n")
+        print(f"{Colors.BLUE}Lumi: {Colors.ENDC}{response}\n")
 
         # 5. Save & Update State
-        self.short_term_memory.append({"role": "Gemma", "content": response})
+        self.short_term_memory.append({"role": "Lumi", "content": response})
         if len(self.short_term_memory) > 20:
             self.short_term_memory.pop(0)
 
         # Background saves (pseudo-async)
         threading.Thread(target=self.memory_manager.save_memory, args=("User", user_input)).start()
-        threading.Thread(target=self.memory_manager.save_memory, args=("Gemma", response)).start()
+        threading.Thread(target=self.memory_manager.save_memory, args=("Lumi", response)).start()
         threading.Thread(target=self.subconscious.analyze_interaction, args=(list(self.short_term_memory),)).start()
 
     def handle_command(self, command):
@@ -126,10 +126,10 @@ class CLIInterface:
             with open(os.path.join("data", "character_card.json"), 'r') as f:
                 data = json.load(f)
             state = data.get('dynamic_state', {})
+            rel = data.get('relationship_depth', {})
             print(f"\n{Colors.BOLD}[ STATUS REPORT ]{Colors.ENDC}")
-            print(f"Mood: {state.get('mood')}")
-            print(f"Energy: {state.get('energy')}")
-            print(f"Obsession: {data.get('narrative_engine', {}).get('current_obsession')}\n")
+            print(f"Mood: {state.get('mood')} | Energy: {state.get('energy')}")
+            print(f"Intimacy: Level {rel.get('intimacy_level')}\n")
         except:
             print("Error reading status.")
 

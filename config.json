@@ -1,11 +1,11 @@
 {
   "discord": {
-    "bot_token": "INSERT TOKEN HERE",
+    "bot_token": "INSERTTOKENHERE",
     "allowed_user_id": 336265310632148994,
     "command_prefix": "!"
   },
   "ollama": {
-    "model_name": "hf.co/DavidAU/Llama-3.2-4X3B-MOE-Hell-California-Uncensored-10B-GGUF:Q4_K_S",
+    "model_name": "nsheth/llama-3-lumimaid-8b-v0.1-iq-imatrix",
     "api_url": "http://localhost:11434/api/generate",
     "timeout": 120
   },
