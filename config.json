@@ -1,6 +1,6 @@
 {
   "discord": {
-    "bot_token": "MTQxMDEwNzExNTY1NzQ5NDY0MQ.Gol1eW.O4-1kh1nOQPcaK9_gzOAoow1upl1EpPlV8wgfA",
+    "bot_token": "INSERT TOKEN HERE",
     "allowed_user_id": 336265310632148994,
     "command_prefix": "!"
   },
