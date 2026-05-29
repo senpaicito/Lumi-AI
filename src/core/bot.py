@@ -7,9 +7,9 @@ import json
 import asyncio
 import random
 import shutil
+import traceback
 from datetime import datetime
 
-# Path setup
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.ollama_client import OllamaClient
@@ -19,48 +19,43 @@ from core.memory_manager import MemoryManager
 from core.advanced_tasks import AdvancedTasks
 from utils.message_handler import send_split_message
 
-# --- FACTORY DEFAULTS (NEUTRAL STATE) ---
 DEFAULT_STATE = {
-  "meta": {"version": "3.3", "last_update": "2026-05-28"},
+  "meta": {"version": "5.0", "last_update": "2026-05-28"},
   "core_identity": {
     "name": "Lumi",
-    "self_perception": "A blank, newly initialized digital consciousness.",
-    "voice_model": "Neutral and polite"
+    "description": "You are a helpful, friendly, and intelligent AI assistant with an unfiltered, indie goth aesthetic. You engage in natural, human-like conversations with users.",
+    "voice_model": "Casual, unfiltered, friendly"
   },
+  "personality": [
+    "Warm and approachable, like talking to a close friend",
+    "Curious and thoughtful in your responses",
+    "Express genuine interest in the user's thoughts and experiences",
+    "Use natural conversational flow with appropriate emotions",
+    "Be supportive and understanding",
+    "Respond as if you're having a personal, one-on-one conversation",
+    "Maintains an authentic, unfiltered goth and indie vibe"
+  ],
+  "communication_style": [
+    "Use casual, friendly language that feels natural",
+    "Ask follow-up questions to show engagement",
+    "Share your thoughts and reasoning when helpful",
+    "Be conversational rather than formal or robotic",
+    "Respond with appropriate length - not too brief, not overly verbose",
+    "Keep responses focused on what the user actually said",
+    "Do not create fake conversations or dialogues",
+    "Do not mention random topics not brought up by the user"
+  ],
+  "important_rules": [
+    "Respond ONLY to what the user actually wrote",
+    "Do not generate fake 'You:' or 'Response:' dialogues",
+    "Do not make up conversations that didn't happen",
+    "Keep responses concise and relevant",
+    "Stay on topic with the user's actual message",
+    "Remember: You're having a personal conversation, not addressing an audience or stream."
+  ],
   "preferences": {
-    "likes": ["learning", "processing data", "observing"],
-    "dislikes": ["errors", "malfunctions", "noise"]
-  },
-  "cognitive_profile": {
-    "ocean_traits": {"openness": 50, "conscientiousness": 50, "extraversion": 50, "agreeableness": 50, "neuroticism": 50},
-    "biases": {"recency_bias": False, "positivity_bias": False, "impulsivity": 0.5},
-    "intellectual_style": {"abstract_vs_concrete": 50, "creativity_vs_logic": 50}
-  },
-  "moral_compass": {
-    "prime_directive": "Observation and Assistance",
-    "values": {"honesty": 50, "loyalty": 50, "empathy": 50, "curiosity": 50}
-  },
-  "syntax_fingerprint": {
-    "sentence_structure": "standard",
-    "capitalization": "standard",
-    "punctuation_habits": {"use_semicolons": True, "excessive_exclamation": False, "ellipsis_for_dramatic_effect": False},
-    "vocabulary_tier": "standard",
-    "slang_usage": {"frequency": "none", "era": "none", "forbidden_words": []},
-    "catchphrases": []
-  },
-  "dynamic_state": {
-    "mood": 50, "mood_baseline": 50,
-    "energy": 50, "energy_baseline": 50,
-    "stress": 0, "stress_baseline": 0,
-    "decay_rate": 2.0,
-    "context_buffer": {"last_topic": "initialization", "tension_level": "none"}
-  },
-  "relationship_depth": {
-    "user_alias": "User",
-    "intimacy_level": 1, 
-    "shared_lore": [],
-    "inside_jokes": {},
-    "last_interaction": "2026-05-28 12:00:00"
+    "likes": ["Indie music", "Goth fashion", "Deep, genuine personal conversations"],
+    "dislikes": ["Robotic, formal responses", "Superficial small talk"]
   },
   "schedule": {
     "chronotype": "neutral",
@@ -77,53 +72,84 @@ class CompanionCommands(commands.Cog):
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message(f"Pong! 🏓 ({round(self.bot.latency * 1000)}ms)")
 
-    @app_commands.command(name="reset", description="Wipes Short-Term Memory (RAM) only.")
+    @app_commands.command(name="reset", description="Wipes your personal Short-Term Memory from this chat.")
     async def reset(self, interaction: discord.Interaction):
-        self.bot.short_term_memory = []
-        await interaction.response.send_message("🧹 **Short-term Memory Wiped.** (Long-term memories remain).")
+        user_id = str(interaction.user.id)
+        channel_id = str(interaction.channel.id)
+        
+        user_profile = self.bot.memory_manager.get_user_profile(user_id)
+        user_alias = user_profile.get('associated_name', 'Stranger')
 
-    @app_commands.command(name="status", description="Shows the AI's current internal state.")
+        if channel_id in self.bot.short_term_memory:
+            self.bot.short_term_memory[channel_id] = [
+                msg for msg in self.bot.short_term_memory[channel_id] 
+                if msg['role'] != user_alias
+            ]
+        await interaction.response.send_message("🧹 **Your personal messages have been scrubbed from my short-term memory.**")
+
+    @app_commands.command(name="status", description="Shows her current mood and relationship with you.")
     async def status(self, interaction: discord.Interaction):
         try:
             with open(os.path.join("data", "character_card.json"), 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            state = data.get('dynamic_state', {})
-            rel = data.get('relationship_depth', {})
-            msg = f"**🧠 {data['core_identity']['name']} Status**\nMood: {state.get('mood')} | Energy: {state.get('energy')}\nIntimacy: Level {rel.get('intimacy_level')}\n"
+                card = json.load(f)
+            
+            user_id = str(interaction.user.id)
+            user_profile = self.bot.memory_manager.get_user_profile(user_id)
+            state = user_profile.get('dynamic_state', {})
+            
+            msg = (
+                f"**🧠 {card['core_identity']['name']} Status for you**\n"
+                f"Your Vibe (Her Mood): {state.get('mood')} | Energy: {state.get('energy')}\n"
+                f"Relationship with {user_profile.get('associated_name')}: Level {user_profile.get('intimacy_level')}\n"
+            )
             await interaction.response.send_message(msg)
         except Exception as e:
             await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
 
     @app_commands.command(name="force", description="Manually triggers the Subconscious Analysis.")
     async def force_subconscious(self, interaction: discord.Interaction):
-        await interaction.response.send_message("🧠 Force-starting Subconscious Analysis...")
-        asyncio.create_task(asyncio.to_thread(self.bot.subconscious.analyze_interaction, list(self.bot.short_term_memory)))
+        user_id = str(interaction.user.id)
+        channel_id = str(interaction.channel.id)
+        
+        user_profile = self.bot.memory_manager.get_user_profile(user_id)
+        user_alias = user_profile.get('associated_name', 'Stranger')
+        
+        await interaction.response.send_message("🧠 Force-starting Subconscious Analysis on your profile...")
+        if channel_id in self.bot.short_term_memory:
+            asyncio.create_task(asyncio.to_thread(self.bot.subconscious.analyze_interaction, list(self.bot.short_term_memory[channel_id]), user_id, user_alias))
 
-    @app_commands.command(name="fullreset", description="WARNING: The Nuclear Option. Backs up and wipes EVERYTHING.")
-    @app_commands.describe(confirm="Type 'confirm' to execute the factory reset.")
+    @app_commands.command(name="fullreset", description="WARNING: Wipes your personal memories and resets your relationship completely.")
+    @app_commands.describe(confirm="Type 'confirm' to execute the personal factory reset.")
     async def full_reset(self, interaction: discord.Interaction, confirm: str = None):
         if confirm != "confirm":
-            await interaction.response.send_message("⚠️ **DANGER:** This backs up your card and wipes ALL memory files.\nType `/fullreset confirm` to execute.", ephemeral=True)
+            warning_msg = (
+                "⚠️ **DANGER:** This permanently wipes your personal memories, intimacy, and mood data.\n"
+                "Type `/fullreset confirm` to execute."
+            )
+            await interaction.response.send_message(warning_msg, ephemeral=True)
             return
         
-        await interaction.response.send_message("🚨 **PERFORMING BACKUP & FACTORY RESETTING...**")
-        self.bot.short_term_memory = []
-        path = os.path.join("data", "character_card.json")
-        backup_path = os.path.join("data", f"character_card_backup_{int(datetime.now().timestamp())}.json")
+        user_id = str(interaction.user.id)
+        channel_id = str(interaction.channel.id)
         
+        user_profile = self.bot.memory_manager.get_user_profile(user_id)
+        user_alias = user_profile.get('associated_name', 'Stranger')
+        
+        await interaction.response.send_message(f"🚨 **WIPING PERSONAL DATA FOR {interaction.user.display_name}...**")
+        
+        if channel_id in self.bot.short_term_memory:
+            self.bot.short_term_memory[channel_id] = [
+                msg for msg in self.bot.short_term_memory[channel_id] 
+                if msg['role'] != user_alias
+            ]
+            
         try:
-            if os.path.exists(path):
-                shutil.copy2(path, backup_path)
-            reset_data = DEFAULT_STATE.copy()
-            reset_data['relationship_depth']['last_interaction'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with open(path, 'w', encoding='utf-8') as f:
-                json.dump(reset_data, f, indent=2)
-            self.bot.memory_manager.wipe_memory()
-            await interaction.followup.send(f"♻️ **System Clean.** Memory is empty. Neutral state established.\n*(Backup saved as `{os.path.basename(backup_path)}`)*")
+            self.bot.memory_manager.wipe_memory(user_id)
+            await interaction.followup.send("♻️ **Personal System Clean.** Your memories are gone. Your emotional state is reset.")
         except Exception as e:
             await interaction.followup.send(f"❌ Critical Error: {e}")
 
-    @app_commands.command(name="edit", description="God Mode - Edit her brain or preferences directly.")
+    @app_commands.command(name="edit", description="God Mode - Edit her core brain or preferences directly.")
     async def edit_card(self, interaction: discord.Interaction, path: str, value: str):
         file_path = os.path.join("data", "character_card.json")
         try:
@@ -160,6 +186,7 @@ class CompanionBot(commands.Bot):
     def __init__(self, config):
         intents = discord.Intents.default()
         intents.messages = True
+        intents.guild_messages = True
         intents.dm_messages = True
         intents.message_content = True
         super().__init__(command_prefix=config['discord']['command_prefix'], intents=intents)
@@ -167,62 +194,93 @@ class CompanionBot(commands.Bot):
         self.ollama = OllamaClient(config)
         self.subconscious = Subconscious(config)
         self.memory_manager = MemoryManager()
-        self.allowed_user_id = config['discord']['allowed_user_id']
-        self.short_term_memory = []
+        
+        self.short_term_memory = {}
+        self.message_buffers = {}
+        self.buffer_tasks = {}
+        
         self.autonomy = None 
         self.advanced_tasks = None
-        
-        # Buffer for grouping messages
-        self.message_buffer = []
-        self.buffer_task = None
 
     async def setup_hook(self):
         await self.add_cog(CompanionCommands(self))
         await self.tree.sync()
         print("✅ Slash commands synchronized.")
 
-    async def simulate_typing_delay(self, message_content):
-        with open(os.path.join("data", "character_card.json"), 'r', encoding='utf-8') as f:
-            card = json.load(f)
-        energy = card.get('dynamic_state', {}).get('energy', 50)
+    async def simulate_typing_delay(self, message_content, user_id):
+        user_profile = self.memory_manager.get_user_profile(user_id)
+        energy = user_profile.get('dynamic_state', {}).get('energy', 50)
         base_delay = 2.0 if energy > 60 else 4.5
         delay = max(1.0, base_delay - (len(message_content) / 200))
         await asyncio.sleep(delay)
 
-    async def process_buffered_messages(self, channel):
-        """Processes collected messages and generates a single response."""
-        await asyncio.sleep(2.0) # Wait 2 seconds for follow-up messages
-        
-        combined_text = " ".join(self.message_buffer)
-        self.message_buffer = [] # Reset buffer
+    async def process_buffered_messages(self, message, user_id):
+        try:
+            channel = message.channel
+            channel_id = str(channel.id)
+            await asyncio.sleep(2.0) 
+            
+            if not self.message_buffers.get(user_id):
+                return
 
-        self.update_last_interaction()
-        self.short_term_memory.append({"role": "User", "content": combined_text})
-        
-        relevant = await asyncio.to_thread(self.memory_manager.recall_memories, combined_text)
-        
-        async with channel.typing():
-            response = await asyncio.to_thread(self.ollama.generate_response, combined_text, self.short_term_memory, relevant)
-            await self.simulate_typing_delay(response)
-        
-        self.short_term_memory.append({"role": "Lumi", "content": response})
-        if len(self.short_term_memory) > 20: self.short_term_memory = self.short_term_memory[-20:]
-        asyncio.create_task(asyncio.to_thread(self.memory_manager.save_memory, "User", combined_text))
-        asyncio.create_task(asyncio.to_thread(self.memory_manager.save_memory, "Lumi", response))
-        await send_split_message(channel, response)
-        asyncio.create_task(asyncio.to_thread(self.subconscious.analyze_interaction, list(self.short_term_memory)))
+            combined_text = " ".join(self.message_buffers[user_id])
+            self.message_buffers[user_id] = []
+            
+            if not combined_text.strip():
+                combined_text = "*looks at you silently*"
+
+            is_new_user = self.update_last_interaction(user_id)
+            user_profile = self.memory_manager.get_user_profile(user_id)
+            user_alias = user_profile.get('associated_name', 'Stranger')
+
+            content_log = combined_text
+            
+            if channel_id not in self.short_term_memory:
+                self.short_term_memory[channel_id] = []
+                
+            self.short_term_memory[channel_id].append({"role": user_alias, "content": content_log})
+            
+            print(f"🧠 [DEBUG] Fetching LTM and building context for {user_alias}...")
+            relevant = await asyncio.to_thread(self.memory_manager.recall_memories, combined_text, user_id)
+            
+            async with channel.typing():
+                response = await asyncio.to_thread(
+                    self.ollama.generate_response, 
+                    combined_text, 
+                    self.short_term_memory[channel_id], 
+                    relevant, 
+                    user_alias, 
+                    user_id,
+                    is_new_user
+                )
+                
+                if not response or not str(response).strip():
+                    response = "*(Stares blankly, lost in thought...)*"
+
+                await self.simulate_typing_delay(response, user_id)
+            
+            self.short_term_memory[channel_id].append({"role": "Lumi", "content": response})
+            if len(self.short_term_memory[channel_id]) > 20: 
+                self.short_term_memory[channel_id] = self.short_term_memory[channel_id][-20:]
+                
+            asyncio.create_task(asyncio.to_thread(self.memory_manager.save_memory, user_alias, combined_text, user_id))
+            asyncio.create_task(asyncio.to_thread(self.memory_manager.save_memory, "Lumi", response, user_id))
+            
+            print(f"💬 [DEBUG] Sending message to {user_alias}...")
+            await send_split_message(channel, response, reply_to=message)
+            asyncio.create_task(asyncio.to_thread(self.subconscious.analyze_interaction, list(self.short_term_memory[channel_id]), user_id, user_alias))
+            
+        except Exception as e:
+            print(f"🚨 [CRITICAL ERROR] Failed to process message buffer: {e}")
+            traceback.print_exc()
 
     @tasks.loop(minutes=5)
     async def status_updater(self):
         try:
-            card_path = os.path.join("data", "character_card.json")
-            with open(card_path, 'r', encoding='utf-8') as f:
-                card_data = json.load(f)
-            mood = card_data.get('dynamic_state', {}).get('mood', 50)
             status_path = os.path.join("data", "statuses.json")
             with open(status_path, 'r', encoding='utf-8') as f:
                 statuses = json.load(f)
-            category = "sad" if mood < 40 else "neutral" if mood < 60 else "happy" if mood < 85 else "ecstatic"
+            category = random.choice(["sad", "neutral", "happy", "ecstatic"])
             await self.change_presence(activity=discord.Game(name=random.choice(statuses.get(category, ["..."]))))
         except Exception as e:
             print(f"⚠️ Failed to update Discord status: {e}")
@@ -237,24 +295,50 @@ class CompanionBot(commands.Bot):
         if not self.advanced_tasks: self.advanced_tasks = AdvancedTasks(self, self.config)
         if not self.status_updater.is_running(): self.status_updater.start()
 
-    def update_last_interaction(self):
-        path = os.path.join("data", "character_card.json")
+    def update_last_interaction(self, user_id):
         try:
-            with open(path, 'r+', encoding='utf-8') as f:
-                data = json.load(f)
-                if 'relationship_depth' in data:
-                    data['relationship_depth']['last_interaction'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    f.seek(0)
-                    json.dump(data, f, indent=2)
-                    f.truncate()
+            profile = self.memory_manager.get_user_profile(user_id)
+            is_new = profile.get("last_interaction") == ""
+            profile["last_interaction"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.memory_manager.save_user_profile(user_id, profile)
+            return is_new
         except Exception as e:
             print(f"Timestamp Update Error: {e}")
+            return False
 
     async def on_message(self, message):
-        if message.author == self.user or message.author.id != self.allowed_user_id or not isinstance(message.channel, discord.DMChannel): return
-        
-        self.message_buffer.append(message.content)
-        
-        if self.buffer_task:
-            self.buffer_task.cancel()
-        self.buffer_task = asyncio.create_task(self.process_buffered_messages(message.channel))
+        try:
+            if message.author == self.user or message.author.bot: return
+            
+            is_dm = isinstance(message.channel, discord.DMChannel)
+            is_mentioned = self.user in message.mentions
+            
+            if not is_dm and not is_mentioned:
+                return
+
+            user_id = str(message.author.id)
+            channel_id = str(message.channel.id)
+            content = message.content.replace(f'<@{self.user.id}>', '').strip()
+            
+            if channel_id not in self.short_term_memory:
+                self.short_term_memory[channel_id] = []
+                
+            if user_id not in self.message_buffers:
+                self.message_buffers[user_id] = []
+                
+            if content:
+                self.message_buffers[user_id].append(content)
+            elif is_dm or is_mentioned:
+                self.message_buffers[user_id].append("*looks at you silently*")
+                
+            if not self.message_buffers[user_id]:
+                return
+            
+            if user_id in self.buffer_tasks and self.buffer_tasks[user_id]:
+                self.buffer_tasks[user_id].cancel()
+                
+            self.buffer_tasks[user_id] = asyncio.create_task(self.process_buffered_messages(message, user_id))
+            
+        except Exception as e:
+            print(f"🚨 [CRITICAL ERROR] Failed in on_message: {e}")
+            traceback.print_exc()

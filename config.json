@@ -1,11 +1,11 @@
 {
   "discord": {
-    "bot_token": "INSERTTOKENHERE",
+    "bot_token": "Insert Token HEre",
     "allowed_user_id": 336265310632148994,
     "command_prefix": "!"
   },
   "ollama": {
-    "model_name": "nsheth/llama-3-lumimaid-8b-v0.1-iq-imatrix",
+    "model_name": "Insert Model Here",
     "api_url": "http://localhost:11434/api/generate",
     "timeout": 120
   },
@@ -14,7 +14,7 @@
     "check_interval_seconds": 60,
     "wake_hour": 8,
     "sleep_hour": 23,
-    "min_silence_hours_before_initiate": 6,
+    "min_silence_hours_before_initiate": 2,
     "initiate_chance": 0.05
   }
 }

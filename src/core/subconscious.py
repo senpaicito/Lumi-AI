@@ -1,38 +1,33 @@
 import json
 import os
 import requests
+import traceback
 
 class Subconscious:
     def __init__(self, config):
+        self.config = config
         self.model = config['ollama']['model_name']
         self.api_url = config['ollama']['api_url']
-        self.card_path = os.path.join("data", "character_card.json")
 
-    def load_card(self):
-        with open(self.card_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    def analyze_interaction(self, channel_short_term_memory, user_id, user_alias):
+        if not channel_short_term_memory: return
 
-    def save_card(self, card_data):
-        with open(self.card_path, 'w', encoding='utf-8') as f:
-            json.dump(card_data, f, indent=2)
-
-    def analyze_interaction(self, history):
-        if not history: return
-
-        recent_context = history[-4:]
+        recent_context = channel_short_term_memory[-5:]
         context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in recent_context])
 
         analysis_prompt = f"""
-        You are the subconscious data processor. Analyze the conversation.
-        Determine how the AI's internal state should change.
+        You are the subconscious data processor. Analyze the following group conversation.
+        Determine how the AI's internal state should change based SPECIFICALLY on the interaction with {user_alias}.
+        Also, check if {user_alias} explicitly stated their name or what they want to be called.
         
         CRITICAL: Output ONLY valid JSON.
         
         State Targets:
-        - mood (0-100): Happiness.
-        - energy (0-100): Excitement.
-        - stress (0-100): Tension.
-        - intimacy (1-5): Bond level.
+        - mood_shift (-10 to 10): Change in Happiness based on interaction with {user_alias}.
+        - energy_shift (-10 to 10): Change in Excitement.
+        - stress_shift (-10 to 10): Change in Tension.
+        - intimacy_shift (0.0 to 1.0): Bond growth with {user_alias}.
+        - user_name_update (String or null): ONLY provide a name if {user_alias} clearly stated it in this specific conversation. Otherwise, output null.
 
         CONVERSATION:
         {context_str}
@@ -42,7 +37,8 @@ class Subconscious:
             "mood_shift": 0,
             "energy_shift": 0,
             "stress_shift": 0,
-            "intimacy_shift": 0
+            "intimacy_shift": 0,
+            "user_name_update": null
         }}
         """
 
@@ -54,28 +50,48 @@ class Subconscious:
         }
 
         try:
-            print("🧠 Subconscious is processing...")
+            print(f"🧠 [DEBUG] Subconscious is processing interaction with {user_alias}...")
             response = requests.post(self.api_url, json=payload)
             data = response.json()['response']
             updates = json.loads(data)
-            self.apply_updates(updates)
+            self.apply_updates(updates, user_id)
         except Exception as e:
-            print(f"Subconscious Error: {e}")
+            print(f"🚨 [CRITICAL ERROR] Subconscious Error: {e}")
+            traceback.print_exc()
 
-    def apply_updates(self, updates):
-        card = self.load_card()
-        
-        # FIX: V3.0 uses 'dynamic_state'
-        if 'dynamic_state' in card:
-            state = card['dynamic_state']
+    def apply_updates(self, updates, user_id):
+        try:
+            user_file = os.path.join("data", "memory", f"{user_id}.json")
+            if os.path.exists(user_file):
+                with open(user_file, 'r', encoding='utf-8') as uf:
+                    user_profile = json.load(uf)
+            else:
+                user_profile = {
+                    "author_id": str(user_id), 
+                    "associated_name": "Stranger", 
+                    "intimacy_level": 1, 
+                    "shared_lore": [], 
+                    "last_interaction": "",
+                    "dynamic_state": {
+                        "mood": 50, "mood_baseline": 50,
+                        "energy": 50, "energy_baseline": 50,
+                        "stress": 0, "stress_baseline": 0,
+                        "decay_rate": 2.0
+                    }
+                }
+
+            state = user_profile.setdefault('dynamic_state', {
+                "mood": 50, "mood_baseline": 50,
+                "energy": 50, "energy_baseline": 50,
+                "stress": 0, "stress_baseline": 0,
+                "decay_rate": 2.0
+            })
             
-            # --- Emotional Decay Engine ---
-            mood_base = state.get('mood_baseline', 70)
-            energy_base = state.get('energy_baseline', 80)
-            stress_base = state.get('stress_baseline', 30)
+            mood_base = state.get('mood_baseline', 50)
+            energy_base = state.get('energy_baseline', 50)
+            stress_base = state.get('stress_baseline', 0)
             decay = state.get('decay_rate', 2.0)
             
-            # Drift towards baseline
             if state['mood'] > mood_base: state['mood'] = max(mood_base, state['mood'] - decay)
             elif state['mood'] < mood_base: state['mood'] = min(mood_base, state['mood'] + decay)
             
@@ -85,15 +101,21 @@ class Subconscious:
             if state['stress'] > stress_base: state['stress'] = max(stress_base, state['stress'] - decay)
             elif state['stress'] < stress_base: state['stress'] = min(stress_base, state['stress'] + decay)
             
-            # --- Apply New Shifts ---
-            state['mood'] = max(0, min(100, state.get('mood', 50) + updates.get('mood_shift', 0)))
-            state['energy'] = max(0, min(100, state.get('energy', 50) + updates.get('energy_shift', 0)))
-            state['stress'] = max(0, min(100, state.get('stress', 0) + updates.get('stress_shift', 0)))
+            state['mood'] = max(0, min(100, state['mood'] + updates.get('mood_shift', 0)))
+            state['energy'] = max(0, min(100, state['energy'] + updates.get('energy_shift', 0)))
+            state['stress'] = max(0, min(100, state['stress'] + updates.get('stress_shift', 0)))
 
-        # FIX: V3.0 uses 'relationship_depth'
-        if 'relationship_depth' in card:
-            rel = card['relationship_depth']
-            rel['intimacy_level'] = max(1, min(5, rel.get('intimacy_level', 1) + updates.get('intimacy_shift', 0)))
+            user_profile['intimacy_level'] = min(10, user_profile.get('intimacy_level', 1) + updates.get('intimacy_shift', 0))
 
-        self.save_card(card)
-        print(f"✨ Subconscious Updated: Mood={card['dynamic_state']['mood']}, Intimacy={card['relationship_depth']['intimacy_level']}")
+            new_name = updates.get('user_name_update')
+            if new_name and isinstance(new_name, str) and new_name.lower() != 'null':
+                user_profile['associated_name'] = new_name
+                print(f"✨ [DEBUG] Subconscious learned a new name: {new_name}!")
+
+            with open(user_file, 'w', encoding='utf-8') as uf:
+                json.dump(user_profile, uf, indent=2)
+                
+            print(f"✨ [DEBUG] Subconscious Updated for {user_profile.get('associated_name')}: Mood={state['mood']}, Intimacy={user_profile['intimacy_level']}")
+        except Exception as e:
+            print(f"🚨 [CRITICAL ERROR] Failed to apply subconscious updates: {e}")
+            traceback.print_exc()

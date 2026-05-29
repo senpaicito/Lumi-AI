@@ -1,6 +1,6 @@
 Here is a complete guide to the `!edit` command based on the structure of your project.
-
-The `!edit` command functions as "God Mode," allowing you to edit the AI's brain directly from Discord. Because it edits the `character_card.json` file directly, the available "subcommands" correspond to the dot-separated paths of the JSON structure.
+The `!edit` command functions as "God Mode," allowing you to edit the AI's brain directly from Discord.
+Because it edits the `character_card.json` file directly, the available "subcommands" correspond to the dot-separated paths of the JSON structure.
 
 ### Command Syntax
 
@@ -14,94 +14,32 @@ The `!edit` command functions as "God Mode," allowing you to edit the AI's brain
 ### Master List of `!edit` Paths
 
 #### 1. Core Identity (`core_identity`)
-
-Controls who she fundamentally thinks she is and how she speaks.
-
 * `!edit core_identity.name [value]` (e.g., `!edit core_identity.name Luna`)
-* `!edit core_identity.self_perception [value]`
-* `!edit core_identity.voice_model [value]` (e.g., `!edit core_identity.voice_model "Sassy Pirate"`)
+* `!edit core_identity.description [value]`
+* `!edit core_identity.voice_model [value]`
 
 #### 2. Dynamic State (`dynamic_state`)
-
 Controls her current emotions, energy, and immediate situational awareness.
-
 * `!edit dynamic_state.mood [number]` (e.g., `!edit dynamic_state.mood 100`)
 * `!edit dynamic_state.energy [number]`
 * `!edit dynamic_state.stress [number]`
 * `!edit dynamic_state.context_buffer.last_topic [value]`
 * `!edit dynamic_state.context_buffer.tension_level [value]`
 
-#### 3. Cognitive Profile (`cognitive_profile`)
-
-Modifies her Big Five personality traits, biases, and thinking style on a 0-100 scale.
-
-* **OCEAN Traits:**
-* `!edit cognitive_profile.ocean_traits.openness [number]`
-* `!edit cognitive_profile.ocean_traits.conscientiousness [number]`
-* `!edit cognitive_profile.ocean_traits.extraversion [number]`
-* `!edit cognitive_profile.ocean_traits.agreeableness [number]`
-* `!edit cognitive_profile.ocean_traits.neuroticism [number]`
-
-
-* **Biases:**
-* `!edit cognitive_profile.biases.recency_bias [true/false]`
-* `!edit cognitive_profile.biases.positivity_bias [true/false]`
-* `!edit cognitive_profile.biases.impulsivity [number]` (e.g., `0.7`)
-
-
-* **Intellectual Style:**
-* `!edit cognitive_profile.intellectual_style.abstract_vs_concrete [number]`
-* `!edit cognitive_profile.intellectual_style.creativity_vs_logic [number]`
-
-
-
-#### 4. Relationship Depth (`relationship_depth`)
-
+#### 3. Relationship Depth (`relationship_depth`)
 Manages how close she feels to you and what she calls you.
-
 * `!edit relationship_depth.user_alias [value]`
 * `!edit relationship_depth.intimacy_level [number]`
 * `!edit relationship_depth.last_interaction [value]`
 
-#### 5. Moral Compass (`moral_compass`)
-
-Dictates her prime directives and ethical values on a 0-100 scale.
-
-* `!edit moral_compass.prime_directive [value]`
-* `!edit moral_compass.values.honesty [number]`
-* `!edit moral_compass.values.loyalty [number]`
-* `!edit moral_compass.values.empathy [number]`
-* `!edit moral_compass.values.curiosity [number]`
-
-#### 6. Syntax Fingerprint (`syntax_fingerprint`)
-
-Fine-tunes the formatting of her text generation.
-
-* `!edit syntax_fingerprint.sentence_structure [value]`
-* `!edit syntax_fingerprint.capitalization [value]` (e.g., `lowercase_aesthetic`)
-* `!edit syntax_fingerprint.vocabulary_tier [value]`
-* **Punctuation Habits:**
-* `!edit syntax_fingerprint.punctuation_habits.use_semicolons [true/false]`
-* `!edit syntax_fingerprint.punctuation_habits.excessive_exclamation [true/false]`
-* `!edit syntax_fingerprint.punctuation_habits.ellipsis_for_dramatic_effect [true/false]`
-
-
-* **Slang Usage:**
-* `!edit syntax_fingerprint.slang_usage.frequency [value]`
-* `!edit syntax_fingerprint.slang_usage.era [value]`
-
-
-
-#### 7. Narrative Engine (`narrative_engine`)
-
-*(Note: If you have updated to the newer version that removes this, these commands will no longer be applicable. Assuming the base v3.0 JSON configuration here).*
-
-* `!edit narrative_engine.current_arc [value]`
-* `!edit narrative_engine.current_obsession [value]` (e.g., `!edit narrative_engine.current_obsession Gardening`)
-* `!edit narrative_engine.short_term_goal [value]`
-* `!edit narrative_engine.long_term_aspiration [value]`
-
-#### 8. Schedule (`schedule`)
-
+#### 4. Schedule (`schedule`)
 * `!edit schedule.chronotype [value]`
 * `!edit schedule.current_activity [value]`
+
+#### 5. Arrays (Lists)
+You can easily edit array lists by separating items with commas!
+* `!edit personality [value, value, ...]`
+* `!edit communication_style [value, value, ...]`
+* `!edit important_rules [value, value, ...]`
+* `!edit preferences.likes [value, value, ...]`
+* `!edit preferences.dislikes [value, value, ...]`
