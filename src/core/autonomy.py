@@ -1,73 +1,50 @@
 import asyncio
-from datetime import datetime, timedelta
-import random
-import json
 import os
-from discord.ext import tasks
+import json
+from datetime import datetime
 
 class AutonomyManager:
     def __init__(self, bot, config):
         self.bot = bot
         self.config = config
-        self.ollama = bot.ollama
-        self.card_path = os.path.join("data", "character_card.json")
-        self.heartbeat.start()
+        self.bot.loop.create_task(self.autonomy_loop())
 
-    def get_last_interaction(self):
-        try:
-            with open(self.card_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if 'relationship_depth' in data:
-                    timestamp_str = data['relationship_depth'].get('last_interaction', "2000-01-01 00:00:00")
-                    return datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-        except:
-            pass
-        return datetime.now()
-
-    @tasks.loop(seconds=60)
-    async def heartbeat(self):
-        if not self.config['autonomy']['enabled']: return
-
-        now = datetime.now()
-        start_hour = self.config['autonomy']['wake_hour']
-        end_hour = self.config['autonomy']['sleep_hour']
-        if not (start_hour <= now.hour < end_hour): return
-
-        last_seen = self.get_last_interaction()
-        delta = now - last_seen
-        min_silence = self.config['autonomy']['min_silence_hours_before_initiate']
-        
-        if delta < timedelta(hours=min_silence): return
-
-        chance = self.config['autonomy']['initiate_chance']
-        if random.random() > chance: return
-
-        print("⚡ Autonomy Triggered")
-        user_id = self.config['discord']['allowed_user_id']
-        user = self.bot.get_user(user_id)
-        
-        if user:
-            # The silent trigger! Calling the LLM organically.
-            message_content = await self.bot.loop.run_in_executor(None, self.ollama.generate_initiative)
-            try:
-                await user.send(message_content)
-                self.bot.short_term_memory.append({"role": "Lumi", "content": message_content})
-                self.update_timestamp()
-            except Exception as e:
-                print(f"Failed to send autonomy message: {e}")
-
-    def update_timestamp(self):
-        try:
-            with open(self.card_path, 'r+', encoding='utf-8') as f:
-                data = json.load(f)
-                if 'relationship_depth' in data:
-                    data['relationship_depth']['last_interaction'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    f.seek(0)
-                    json.dump(data, f, indent=2)
-                    f.truncate()
-        except Exception as e:
-            print(f"Error updating timestamp: {e}")
-
-    @heartbeat.before_loop
-    async def before_heartbeat(self):
+    async def autonomy_loop(self):
         await self.bot.wait_until_ready()
+        while not self.bot.is_closed():
+            try:
+                now = datetime.now()
+                # 1. REM Sleep Processing (e.g., 3 AM)
+                if now.hour == 3 and now.minute < 10:
+                    await self.bot.advanced_tasks.process_rem_sleep()
+                    await asyncio.sleep(3600) 
+                
+                # 2. Proactive DM Engagement
+                memory_dir = self.bot.memory_manager.memory_dir
+                for filename in os.listdir(memory_dir):
+                    if filename.endswith(".json") and filename != "diary":
+                        user_id = filename.replace(".json", "")
+                        profile = self.bot.memory_manager.get_user_profile(user_id)
+                        
+                        if profile.get("engagement_enabled") and profile.get("last_dm_id"):
+                            last_time_str = profile.get("last_interaction")
+                            if last_time_str:
+                                last_time = datetime.fromisoformat(last_time_str)
+                                diff_hours = (now - last_time).total_seconds() / 3600
+                                
+                                # If 4 hours have passed, send a message in DMs ONLY
+                                if 4.0 <= diff_hours <= 4.2:
+                                    user = self.bot.get_user(int(user_id))
+                                    if user:
+                                        prompt = f"You haven't spoken to {profile.get('associated_name')} in over 4 hours. Text them first. Be casual and organic."
+                                        response = self.bot.ollama._send_request(prompt) 
+                                        
+                                        formatted = self.bot.apply_emotional_formatting(response, user_id)
+                                        await user.send(formatted)
+                                        
+                                        profile["last_interaction"] = datetime.now().isoformat()
+                                        self.bot.memory_manager.save_user_profile(user_id, profile)
+                
+            except Exception as e:
+                print(f"Autonomy Error: {e}")
+            await asyncio.sleep(300)

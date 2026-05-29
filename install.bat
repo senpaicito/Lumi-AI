@@ -1,6 +1,6 @@
 @echo off
-title LUMI AI - Startup Sequence
-color 05
+title LUMI AI - Dependency Installer
+color 0B
 cls
 echo.
 echo   ██╗         ██╗   ██╗    ███╗   ███╗    ██╗
@@ -11,17 +11,13 @@ echo   ███████╗    ╚██████╔╝    ██║ ╚�
 echo   ╚══════╝     ╚═════╝     ╚═╝     ╚═╝    ╚═╝
 echo.
 echo ==================================================
-echo  System: LOADED!
-echo  Architecture: READY!
+echo  Dependency Installation Interface
 echo ==================================================
 echo.
-echo [INFO] Booting sequence initiated...
-echo [INFO] Loading core modules...
+echo [INFO] Upgrading Python package manager (pip)...
+python -m pip install --upgrade pip >nul
+echo [INFO] Installing packages from requirements.txt...
+pip install -r requirements.txt
 echo.
-
-cd /d "%~dp0"
-python src/main.py
-
-echo.
-echo [CRITICAL] Process terminated or crashed.
+echo [SUCCESS] System is up to date and ready for deployment.
 pause
