@@ -1,11 +1,11 @@
 {
   "discord": {
-    "bot_token": "MTMzMTAxNzM5NzY1MzYwMjM5NQ.G_SqKy.yV8sdO0gNkKiazZrksn9cY_BPyKicT7rT1nF9Y",
+    "bot_token": "Insert token here",
     "allowed_user_id": 336265310632148994,
     "command_prefix": "!"
   },
   "ollama": {
-    "model_name": "hf.co/Novaciano/Llama-3.2-3b-NSFW_Aesir_Uncensored-GGUF",
+    "model_name": "insert model here",
     "api_url": "http://localhost:11434/api/generate",
     "timeout": 120
   },
